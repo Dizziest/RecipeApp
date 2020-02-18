@@ -4,11 +4,16 @@ import android.os.Bundle;
 import android.util.Log;
 import android.view.View;
 
+import androidx.lifecycle.Observer;
+import androidx.lifecycle.ViewModel;
+import androidx.lifecycle.ViewModelProvider;
+
 import com.example.foodrecipes.models.Recipe;
 import com.example.foodrecipes.requests.RecipeApi;
 import com.example.foodrecipes.requests.ServiceGenerator;
 import com.example.foodrecipes.requests.responses.RecipeResponse;
 import com.example.foodrecipes.requests.responses.RecipeSearchResponse;
+import com.example.foodrecipes.viewmodels.RecipeListViewModel;
 
 import java.io.IOException;
 import java.util.ArrayList;
@@ -21,16 +26,24 @@ import retrofit2.Response;
 public class RecipeListActivity extends BaseActivity {
 
     private static final String TAG = "RecipeListActivity";
+
+    private RecipeListViewModel mRecipeListViewModel;
     
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_recipe_list);
 
-        findViewById(R.id.test).setOnClickListener(new View.OnClickListener() {
+        mRecipeListViewModel = new ViewModelProvider(this).get(RecipeListViewModel.class);
+
+        subscribeObservers();
+    }
+
+    private void subscribeObservers(){
+        mRecipeListViewModel.getRecipes().observe(this, new Observer<List<Recipe>>() {
             @Override
-            public void onClick(View v) {
-                testRetrofitRequest();
+            public void onChanged(List<Recipe> recipes) {
+
             }
         });
     }
