@@ -8,7 +8,6 @@ import androidx.lifecycle.MutableLiveData;
 import com.example.foodrecipes.AppExecutors;
 import com.example.foodrecipes.models.Recipe;
 import com.example.foodrecipes.requests.responses.RecipeSearchResponse;
-import com.example.foodrecipes.util.Constants;
 
 import java.io.IOException;
 import java.util.ArrayList;
@@ -49,7 +48,7 @@ public class RecipeApiClient {
             mRetrieveRecipesRunnable = null;
         }
         mRetrieveRecipesRunnable = new RetrieveRecipesRunnable(query, pageNumber);
-        final Future handler = AppExecutors.getInstance().networkIO().submit();
+        final Future handler = AppExecutors.getInstance().networkIO().submit(mRetrieveRecipesRunnable);
 
         AppExecutors.getInstance().networkIO().schedule(new Runnable() {
             @Override
