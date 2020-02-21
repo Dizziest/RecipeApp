@@ -13,6 +13,7 @@ import com.example.foodrecipes.adapters.RecipeRecyclerAdapter;
 import com.example.foodrecipes.models.Recipe;
 
 import com.example.foodrecipes.util.Testing;
+import com.example.foodrecipes.util.VerticalSpacingItemDecorator;
 import com.example.foodrecipes.viewmodels.RecipeListViewModel;
 
 
@@ -39,6 +40,10 @@ public class RecipeListActivity extends BaseActivity implements OnRecipeListener
         initRecyclerView();
         subscribeObservers();
         initSearchView();
+
+        if (!mRecipeListViewModel.isViewingRecipes()){
+            displaySearchCategories();
+        }
     }
 
     private void subscribeObservers(){
@@ -56,7 +61,10 @@ public class RecipeListActivity extends BaseActivity implements OnRecipeListener
     private void initRecyclerView(){
         mAdapter = new RecipeRecyclerAdapter(this);
         mRecyclerView.setAdapter(mAdapter);
+        VerticalSpacingItemDecorator itemDecorator = new VerticalSpacingItemDecorator(30);
+        mRecyclerView.addItemDecoration(itemDecorator);
         mRecyclerView.setLayoutManager(new LinearLayoutManager(this));
+
     }
 
 
@@ -85,6 +93,12 @@ public class RecipeListActivity extends BaseActivity implements OnRecipeListener
 
     @Override
     public void onCategoryClick(String category) {
+        mAdapter.displayLoading();
+        mRecipeListViewModel.searchRecipesApi(category, 1);
+    }
 
+    private void displaySearchCategories(){
+        mRecipeListViewModel.setIsViewingRecipes(false);
+        mAdapter.displaySearchCategories();
     }
 }
