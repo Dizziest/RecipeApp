@@ -22,6 +22,7 @@ public class RecipeRecyclerAdapter extends RecyclerView.Adapter<RecyclerView.Vie
     private static final int RECIPE_TYPE = 1;
     private static final int LOADING_TYPE = 2;
     private static final int CATEGORY_TYPE = 3;
+    private static final int EXHAUSTED_TYPE = 4;
 
    private List<Recipe> mRecipes;
    private OnRecipeListener mOnRecipeListener;
@@ -49,6 +50,11 @@ public class RecipeRecyclerAdapter extends RecyclerView.Adapter<RecyclerView.Vie
             case CATEGORY_TYPE:{
                 view = LayoutInflater.from(parent.getContext()).inflate(R.layout.layout_category_list_item, parent, false);
                 return new CategoryViewHolder(view, mOnRecipeListener );
+            }
+
+            case EXHAUSTED_TYPE:{
+                view = LayoutInflater.from(parent.getContext()).inflate(R.layout.layout_search_exhausted, parent, false);
+                return new SearchExhaustedViewHolder(view);
             }
 
             default:{
@@ -97,8 +103,34 @@ public class RecipeRecyclerAdapter extends RecyclerView.Adapter<RecyclerView.Vie
         }
         else if (mRecipes.get(position).getTitle().equals("LOADING...")){
             return LOADING_TYPE;
-        } else {
+        }
+        else if (mRecipes.get(position).getTitle().equals("EXHAUSTED...")){
+            return EXHAUSTED_TYPE;
+        }
+        else if (position == mRecipes.size() - 1 && position != 0 && !mRecipes.get(position).getTitle().equals("EXHAUSTED...")){
+            return LOADING_TYPE;
+        }
+        else {
             return RECIPE_TYPE;
+        }
+    }
+
+    public void setQueryExhausted(){
+        hideLoading();
+        Recipe exhaustedRecipe = new Recipe();
+        exhaustedRecipe.setTitle("EXHAUSTED...");
+        mRecipes.add(exhaustedRecipe);
+        notifyDataSetChanged();
+    }
+
+    private void hideLoading(){
+        if (isLoading()){
+            for (Recipe recipe: mRecipes){
+                if (recipe.getTitle().equals("LOADING...")){
+                    mRecipes.remove(recipe);
+                }
+            }
+            notifyDataSetChanged();
         }
     }
 
@@ -149,5 +181,14 @@ public class RecipeRecyclerAdapter extends RecyclerView.Adapter<RecyclerView.Vie
     public void setRecipes(List<Recipe> recipes){
         mRecipes = recipes;
         notifyDataSetChanged();
+    }
+
+    public Recipe getSelectedRecipe(int position){
+        if (mRecipes != null) {
+            if (mRecipes.size() > 0) {
+                return mRecipes.get(position);
+            }
+        }
+        return null;
     }
 }

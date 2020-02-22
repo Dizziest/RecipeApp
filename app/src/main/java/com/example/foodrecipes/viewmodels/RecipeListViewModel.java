@@ -12,10 +12,15 @@ public class RecipeListViewModel extends ViewModel {
 
     private RecipeRespository mRecipeRepository;
     private boolean mIsViewingRecipes;
+    private boolean mIsPerformingQuery;
 
     public RecipeListViewModel() {
-        mIsViewingRecipes = false;
         mRecipeRepository = RecipeRespository.getInstance();
+        mIsPerformingQuery = false;
+    }
+
+    public LiveData<Boolean> isQueryExhausted(){
+        return mRecipeRepository.isQueryExhasted();
     }
 
     public LiveData<List<Recipe>> getRecipes(){
@@ -24,14 +29,42 @@ public class RecipeListViewModel extends ViewModel {
 
     public void searchRecipesApi(String query, int pageNumber){
         mIsViewingRecipes = true;
+        mIsPerformingQuery = true;
         mRecipeRepository.searchRecipesApi(query, pageNumber);
+    }
+
+    public void searchNextPage(){
+        if (!mIsPerformingQuery && mIsViewingRecipes && !isQueryExhausted().getValue()){
+            mRecipeRepository.searchNextPage();
+        }
     }
 
     public boolean isViewingRecipes(){
         return mIsViewingRecipes;
     }
 
+
     public void setIsViewingRecipes(boolean isViewingRecipes){
         mIsViewingRecipes = isViewingRecipes;
+    }
+
+    public void setIsPerformingQuery(Boolean isPerformingQuery){
+        mIsPerformingQuery = isPerformingQuery;
+    }
+
+    public boolean isPerformingQuery(){
+        return mIsPerformingQuery;
+    }
+
+    public boolean onBackPressed(){
+        if (mIsPerformingQuery){
+            mRecipeRepository.cancelRequest();
+            mIsPerformingQuery = false;
+        }
+        if (mIsViewingRecipes){
+            mIsViewingRecipes = false;
+            return false;
+        }
+        return true;
     }
 }

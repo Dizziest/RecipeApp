@@ -7,6 +7,7 @@ import androidx.lifecycle.MutableLiveData;
 
 import com.example.foodrecipes.AppExecutors;
 import com.example.foodrecipes.models.Recipe;
+import com.example.foodrecipes.requests.responses.RecipeResponse;
 import com.example.foodrecipes.requests.responses.RecipeSearchResponse;
 
 import java.io.IOException;
@@ -27,6 +28,9 @@ public class RecipeApiClient {
     private static RecipeApiClient instance;
     private MutableLiveData<List<Recipe>> mRecipes;
     private RetrieveRecipesRunnable mRetrieveRecipesRunnable;
+    private MutableLiveData<Recipe> mRecipe;
+    private RetrieveRecipeRunnable mRetrieveRecipeRunnable;
+    private MutableLiveData<Boolean> mRecipeRequestTimeout = new MutableLiveData<>();
 
     public static RecipeApiClient getInstance(){
         if (instance == null){
@@ -37,10 +41,19 @@ public class RecipeApiClient {
 
     private RecipeApiClient(){
         mRecipes = new MutableLiveData<>();
+        mRecipe = new MutableLiveData<>();
     }
 
     public LiveData<List<Recipe>> getRecipes(){
         return mRecipes;
+    }
+
+    public LiveData<Recipe> getRecipe(){
+        return mRecipe;
+    }
+
+    public LiveData<Boolean> isRecipeRequestTimedOut(){
+        return mRecipeRequestTimeout;
     }
 
     public void searchRecipesApi(String query, int pageNumber){
@@ -53,6 +66,22 @@ public class RecipeApiClient {
         AppExecutors.getInstance().networkIO().schedule(new Runnable() {
             @Override
             public void run() {
+                handler.cancel(true);
+            }
+        }, NETWORK_TIMEOUT, TimeUnit.MILLISECONDS);
+    }
+
+    public void searchRecipeById(String recipeId){
+        if (mRetrieveRecipeRunnable != null){
+            mRetrieveRecipeRunnable = null;
+        }
+        mRetrieveRecipeRunnable = new RetrieveRecipeRunnable(recipeId);
+        final Future handler = AppExecutors.getInstance().networkIO().submit(mRetrieveRecipeRunnable);
+        mRecipeRequestTimeout.setValue(false);
+        AppExecutors.getInstance().networkIO().schedule(new Runnable() {
+            @Override
+            public void run() {
+                mRecipeRequestTimeout.postValue(true);
                 handler.cancel(true);
             }
         }, NETWORK_TIMEOUT, TimeUnit.MILLISECONDS);
@@ -107,6 +136,58 @@ public class RecipeApiClient {
         private void cancelRequest(){
             Log.d(TAG, "cancelRequest: cancelling request");
             cancelRequest = true;
+        }
+    }
+
+    private class RetrieveRecipeRunnable implements Runnable{
+
+        boolean cancelRequest;
+        String recipeId;
+
+        public RetrieveRecipeRunnable(String recipeId) {
+            cancelRequest = false;
+            this.recipeId = recipeId;
+        }
+
+        @Override
+        public void run() {
+            try {
+                Response response = getRecipe(recipeId).execute();
+                if (cancelRequest){
+                    return;
+                }
+                if (response.code() == 200){
+                    Recipe recipe = ((RecipeResponse)response.body()).getRecipe();
+                    mRecipe.postValue(recipe);
+                } else {
+                    String error = response.errorBody().string();
+                    Log.e(TAG, "run: " + error);
+                    mRecipe.postValue(null);
+                }
+            } catch (IOException e) {
+                e.printStackTrace();
+                mRecipe.postValue(null);
+            }
+        }
+
+        private Call<RecipeResponse> getRecipe(String recipeId){
+            return ServiceGenerator.getRecipeApi().getRecipe(
+                    recipeId
+            );
+        }
+
+        private void cancelRequest(){
+            Log.d(TAG, "cancelRequest: cancelling request");
+            cancelRequest = true;
+        }
+    }
+
+    public void cancelRequest(){
+        if (mRetrieveRecipesRunnable != null){
+            mRetrieveRecipesRunnable.cancelRequest();
+        }
+        if (mRetrieveRecipeRunnable != null){
+            mRetrieveRecipeRunnable.cancelRequest();
         }
     }
 }
